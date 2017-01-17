@@ -1,0 +1,57 @@
+version: '2'
+services:
+  web:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 256k
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../ACE:/workspace
+      - ./start_rails:/start_rails
+    volumes_from:
+      - box
+    links:
+      - postgres_db
+      - redis_db
+    ports:
+      - 8080
+    command: /start_rails
+  lb:
+    image: dockercloud/haproxy
+    links:
+      - web
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 80:80
+      - 1936:1936
+  box:
+    image: busybox
+    volumes:
+      - /bundle
+  postgres_db:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 256k
+    image: postgres:9.4
+    environment:
+      - DEBUG=false
+    ports:
+      - 5432
+    volumes:
+      - ./data/postgres:/var/lib/postgresql
+  redis_db:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 256k
+    image: redis:latest
+    mem_limit: 64m
+    ports:
+      - 6379
+    volumes:
+      - ./data/redis:/data
